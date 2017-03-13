@@ -1,15 +1,27 @@
 package com.profile.es.component;
 
+import java.util.Date;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.handler.HandlerInterceptorAdapter;
 
+import com.profile.es.repository.LogRepository;
+
 @Component("requestTimeInterceptor")
 public class RequestTimeInterceptor extends HandlerInterceptorAdapter {
+	
+	@Autowired
+	@Qualifier("logRepository")
+	private LogRepository  logRepository;
 	
 	private static final Log LOG = LogFactory.getLog(RequestTimeInterceptor.class);
 	
@@ -24,7 +36,16 @@ public class RequestTimeInterceptor extends HandlerInterceptorAdapter {
 	public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex)
 			throws Exception {
 		long startTime = (long) request.getAttribute("startTime");
-		LOG.info("--REQUEST URL: '" + request.getRequestURL().toString() + "' -- TOTAL TIME: " + (System.currentTimeMillis() - startTime) + "' ms");
+		
+		String url = request.getRequestURL().toString().toString();
+		String username = "";
+		
+		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+		if (auth != null && auth.isAuthenticated()) {
+			username = auth.getName();
+		}
+		logRepository.save(new com.profile.es.entity.Log(new Date(), auth.getDetails().toString(), username, url));
+ 		LOG.info("Url to: '" + url + "' in: " + (System.currentTimeMillis() - startTime) + "' ms");
 	}
 
 
